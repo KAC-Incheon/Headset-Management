@@ -31,12 +31,21 @@ from PyQt5.QtGui import *
 import pymysql
 import openpyxl
 
+from DBConnect import DB
 from openpyxl import load_workbook
 
-conn, cur = None, None  # sql 연결 커서
+from UIRegister import Ui_Resigster
+from UIUpdate import Ui_Update
 
 
-class Ui_MainWindow(object):
+# conn, cur = None, None  # sql 연결 커서
+
+class Ui_MainWindow(QWidget):
+
+    def __init__(self):
+        super().__init__()
+        self.db = DB()
+        self.btnStyleSet = "QPushButton{border-style:solid;border-width: 2px;border-color: #9DCFFF;border-radius: 3px;}QPushButton::hover{border-style:solid; border-width: 1px; color:white; background-color: #9DCFFF;border-radius: 3px;}"
 
     def setupUi(self, MainWindow):
 
@@ -237,90 +246,20 @@ class Ui_MainWindow(object):
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
-        self.pushButton.clicked.connect(MainWindow.showlist)  # type: ignore 함수연결
+        self.pushButton.clicked.connect(MainWindow.showlist)  ### type: ignore 함수연결 ###
         self.pushButton_3.clicked.connect(MainWindow.delete)
         self.pushButton_2.clicked.connect(self.dialog_open)  # 수정창 띄우기
-        self.pushButton_4.clicked.connect(MainWindow.register_open)  # 등록창 띄우기
+        self.pushButton_4.clicked.connect(self.register_open)  # 등록창 띄우기
         self.pushButton_5.clicked.connect(self.export)  # 엑셀만들기
         # 검색버튼
-        self.pushButton.setStyleSheet("QPushButton"
-                                      "{"
-                                      "border-style:solid;"
-                                      "border-width: 2px;"
-                                      "border-color: #9DCFFF;"
-                                      "border-radius: 3px;"
-                                      "}""QPushButton::hover"
-                                      "{"
-                                      "border-style:solid;"
-                                      "border-width: 1px;"
-                                      "color:white;"
-                                      "background-color: #9DCFFF;"
-                                      "border-radius: 3px;"
-                                      "}"
-                                      )
+        self.pushButton.setStyleSheet(self.btnStyleSet)
         # 수정버튼
-        self.pushButton_2.setStyleSheet("QPushButton"
-                                        "{"
-                                        "border-style:solid;"
-                                        "border-width: 2px;"
-                                        "border-color: #9DCFFF;"
-                                        "border-radius: 3px;"
-                                        "}""QPushButton::hover"
-                                        "{"
-                                        "border-style:solid;"
-                                        "border-width: 1px;"
-                                        "color:white;"
-                                        "background-color: #9DCFFF;"
-                                        "border-radius: 3px;"
-                                        "}"
-                                        )
+        self.pushButton_2.setStyleSheet(self.btnStyleSet)
         # 삭제버튼
-        self.pushButton_3.setStyleSheet("QPushButton"
-                                        "{"
-                                        "border-style:solid;"
-                                        "border-width: 2px;"
-                                        "border-color: #9DCFFF;"
-                                        "border-radius: 3px;"
-                                        "}""QPushButton::hover"
-                                        "{"
-                                        "border-style:solid;"
-                                        "border-width: 1px;"
-                                        "color:white;"
-                                        "background-color: #9DCFFF;"
-                                        "border-radius: 3px;"
-                                        "}"
-                                        )
+        self.pushButton_3.setStyleSheet(self.btnStyleSet)
         # 등록버튼
-        self.pushButton_4.setStyleSheet("QPushButton"
-                                        "{"
-                                        "border-style:solid;"
-                                        "border-width: 2px;"
-                                        "border-color: #9DCFFF;"
-                                        "border-radius: 3px;"
-                                        "}""QPushButton::hover"
-                                        "{"
-                                        "border-style:solid;"
-                                        "border-width: 1px;"
-                                        "color:white;"
-                                        "background-color: #9DCFFF;"
-                                        "border-radius: 3px;"
-                                        "}"
-                                        )
-        self.pushButton_5.setStyleSheet("QPushButton"
-                                        "{"
-                                        "border-style:solid;"
-                                        "border-width: 2px;"
-                                        "border-color: #9DCFFF;"
-                                        "border-radius: 3px;"
-                                        "}""QPushButton::hover"
-                                        "{"
-                                        "border-style:solid;"
-                                        "border-width: 1px;"
-                                        "color:white;"
-                                        "background-color: #9DCFFF;"
-                                        "border-radius: 3px;"
-                                        "}"
-                                        )
+        self.pushButton_4.setStyleSheet(self.btnStyleSet)
+        self.pushButton_5.setStyleSheet(self.btnStyleSet)
 
         self.tableWidget.verticalHeader().sectionClicked.connect(self.row_click)  # 행 헤더 클릭
 
@@ -340,55 +279,33 @@ class Ui_MainWindow(object):
 
         self.tableWidget.setSortingEnabled(True)  # 열 정렬
 
-        # self.tableWidget.setStyleSheet("background-color:  #9DCFFF;")
+        # 지급수량 세기
+        self.textBrowser.setText(
+            str(self.db.execute_one("SELECT COUNT(*) from v_new WHERE state = '지급';")[0]))  ##### 개수 표출
 
-        ##### 지급수량 세기
-        conn = pymysql.connect(host='192.168.97.205', user='headset', password='headset', port=3306,  # sql테이블 읽어오기
-                               db='headset_db', charset='utf8')
+        ##### 미지급수량 세기
+        self.textBrowser_2.setText(
+            str(self.db.execute_one("SELECT COUNT(*) from v_new WHERE state IN ('반납','none');")[0]))  ##### 개수 표출
 
-        cur = conn.cursor()  # 커서 연결하기
-        text = '지급'
-        cur.execute("SELECT COUNT(*) from v_new WHERE state IN ('{}');".format(text))  # sql문 입력
-        row = cur.fetchone()
-        self.textBrowser.setText(str(row[0]))  ##### 개수 표출
-
-        ##### 미지급수량 세기 
-        cur.execute("SELECT COUNT(*) from v_new WHERE state IN ('반납','none');")  # sql문 입력
-        row = cur.fetchone()
-        self.textBrowser_2.setText(str(row[0]))  ##### 개수 표출
-
-        ##### 총수량 세기 
-        cur.execute("select * from v_new")  # sql문 입력
-        rowcount = cur.fetchall()
-        self.textBrowser_3.setText(str(len(rowcount)))  ##### 개수 표출
+        ##### 총수량 세기
+        self.textBrowser_3.setText(str(len(self.db.execute_all("select * from v_new;"))))  ##### 개수 표출
 
         ###콤보박스 리스트 추가
         self.comboBox.addItem('')
 
-        conn = pymysql.connect(host='192.168.97.205', user='headset', password='headset', port=3306,  # sql테이블 읽어오기
-                               db='headset_db', charset='utf8')
-        cur = conn.cursor()
+        for model in self.db.execute_all(
+                "SELECT DISTINCT model_name FROM v_now WHERE NOT model_name = 'none' ORDER BY model_name DESC ;"):
+            self.comboBox.addItem(model[0])
 
-        sql = "SELECT DISTINCT model_name FROM v_now WHERE NOT model_name = 'none' ORDER BY model_name DESC ;"
-        cur.execute(sql)
-
-        while True:
-            sqlrow = cur.fetchone()
-            if sqlrow == None:
-                break
-            self.comboBox.addItem(str(sqlrow[0]))
         self.comboBox.addItem('none')
         self.comboBox.currentIndexChanged.connect(self.combo_change)
 
-        ####지급여부 콤보박스2 리스트 설정   
+        cur = self.db.conn.cursor()
+
+        ####지급여부 콤보박스2 리스트 설정
         self.comboBox_2.addItem('')
-        sql = "SELECT DISTINCT state FROM v_now ORDER BY state DESC; "
-        cur.execute(sql)
-        while True:
-            sqlrow = cur.fetchone()
-            if sqlrow == None:
-                break
-            self.comboBox_2.addItem(str(sqlrow[0]))
+        for given in self.db.execute_all("SELECT DISTINCT state FROM v_now ORDER BY state DESC;"):
+            self.comboBox_2.addItem(given[0])
 
         self.comboBox_2.currentIndexChanged.connect(self.combo2_change)  ###콤보박스 선택 시 함수
 
@@ -398,9 +315,9 @@ class Ui_MainWindow(object):
         return combo
 
     def combo2_change(self):  ###### 지급or반납
-        a = self.comboBox_2.currentText()
+        combo = self.comboBox_2.currentText()
 
-        return a
+        return combo
 
     def register_open(self):  # 등록 창 오픈
 
@@ -414,135 +331,51 @@ class Ui_MainWindow(object):
 
         ########################    등록 후 다시 검색 ####################################
         ##### 지급수량 세기
-        conn = pymysql.connect(host='192.168.97.205', user='headset', password='headset', port=3306,  # sql테이블 읽어오기
-                               db='headset_db', charset='utf8')
-        cur = conn.cursor()  # 커서 연결하기
-        text = '지급'
-        cur.execute("SELECT COUNT(*) from v_new WHERE state IN ('{}');".format(text))  # sql문 입력
-        row = cur.fetchone()
-        self.textBrowser.setText(str(row[0]))  ##### 개수 표출
+
+        self.textBrowser.setText(self.db.execute_one("SELECT COUNT(*) from v_new WHERE state = '지급';")[0])  ##### 개수 표출
         ##### 미지급수량 세기 
-        cur.execute("SELECT COUNT(*) from v_new WHERE state IN ('반납','none');")  # sql문 입력
-        row = cur.fetchone()
-        self.textBrowser_2.setText(str(row[0]))  ##### 개수 표출
-        ##### 총수량 세기 
-        cur.execute("select * from v_new")  # sql문 입력
-        rowcount = cur.fetchall()
-        self.textBrowser_3.setText(str(len(rowcount)))  ##### 개수 표출
 
-        # self.tableWidget.setStyleSheet("border-style:solid;"
-        #                               "border-width: 0.4px;"         
-        #                               "border-color: #9DCFFF;"
-        #                               "border-radius: 3p")       
-
-        conn = pymysql.connect(host='192.168.97.205', user='headset', password='headset', port=3306,  # sql테이블 읽어오기
-                               db='headset_db', charset='utf8')
-        cur = conn.cursor()
+        self.textBrowser_2.setText(
+            self.db.execute_one("SELECT COUNT(*) from v_new WHERE state IN ('반납','none');")[0])  ##### 개수 표출
+        ##### 총수량 세기
+        self.textBrowser_3.setText(len(self.db.execute_one("select * from v_new")))  ##### 개수 표출
 
         self.tableWidget.clear()
-        text_serial = self.textEdit.toPlainText()  # 사용자 일련번호 입력값 받아오기
-        text_model = self.combo_change()  # 모델명
-        text_recieve = self.textEdit_4.toPlainText()  # 인수자
-        text_state = self.combo2_change()  # 지급여부
-        text_date = self.textEdit_6.toPlainText()
-        text_return = self.textEdit_7.toPlainText()
-        text_list = [text_serial.strip(), text_model.strip(), text_recieve.strip(), text_state.strip(),
-                     text_date.strip(), text_return.strip()]  # strip함수 : 공백->0 리턴
 
-        if not any(text_list):  ########## 모든 칸에 입력 없을 경우 전체 헤드셋 표출
-
-            cur.execute("select * from v_new")  # sql문 실행
-            allrows = cur.fetchall()
-            self.tableWidget.setRowCount(len(allrows))  # 테이블 행 갯수 지정
-            self.tableWidget.setColumnCount(11)  # 테이블 열 갯수 지정
-            self.tableWidget.setHorizontalHeaderLabels(
-                ['모델명', '일련번호', '상태', '일자', '지급내용', '인수자', '반납내용', '반납자', '확인자', '비고'])  # 위젯 헤드이름
-            # 등재된 전체 헤드셋 정보 표출
-            cur.execute("select * from v_new")
-            row = 0
-            while True:
-                sqlrow = cur.fetchone()
-
-                if sqlrow == None:
-                    break
-                for col in range(0, 11):  # 0부터 9번째 열
-                    self.tableWidget.setItem(row, col, QTableWidgetItem(str(sqlrow[col])))
-                    if str(sqlrow[col]) == "None":  # 일자 null값 공백으로 표출
-                        self.tableWidget.setItem(row, col, QTableWidgetItem(""))
-
-                row += 1
-            self.tableWidget.setColumnHidden(10, True)  ####마지막 기록 순번 열 숨김
-
-        else:  ############# 입력값 하나라도 있을 경우 조건 검색
-
-            self.tableWidget.clear()  # 테이블 위젯 초기화
-            ####입력이 공백일 경우 해당 조건 패스 
-            if not text_serial.strip():
-                text_serial = 'serial_num'
-            else:
-                text_serial = ("'{}'".format(text_serial))
-            if not text_model.strip():
-                text_model = 'model_name'
-            else:
-                text_model = ("'{}'".format(text_model))
-            if not text_recieve.strip():
-                text_recieve = 'recieve_person'
-            else:
-                text_recieve = ("'{}'".format(text_recieve))
-            if not text_state.strip():
-                text_state = 'state'
-            else:
-                text_state = ("'{}'".format(text_state))
-            if not text_date.strip():
-                text_date = 'state_date'
-            else:
-                try:
-                    print(datetime.datetime.strptime(text_date, "%Y-%m-%d"))
-                    text_date = ("'{}'".format(text_date))
-                except ValueError:
-                    QMessageBox.warning(self, '경고', '날짜 형식은 YYYY-MM-DD로 입력해주세요.')
-                    text_date = 'state_date'
-            if not text_return.strip():
-                text_return = 'return_person'
-            else:
-                text_return = ("'{}'".format(text_return))
-
-            sql = "SELECT * FROM v_new WHERE serial_num = {} AND model_name = {}\
-                   AND recieve_person = {} AND state = {}\
-                   AND state_date = {} AND return_person = {}\
-                   ORDER BY state_date DESC".format(text_serial, text_model, text_recieve, text_state, text_date,
-                                                    text_return)
-            cur.execute(sql)
-            ####테이블 행열 지정
-            allrows = cur.fetchall()
-            self.tableWidget.setRowCount(len(allrows))  # 테이블 행 갯수 지정
-            self.tableWidget.setColumnCount(11)  # 테이블 열 갯수 지정
-            self.tableWidget.setHorizontalHeaderLabels(
-                ['모델명', '일련번호', '상태', '일자', '지급내용', '인수자', '반납내용', '반납자', '확인자', '비고'])  # 헤드이름
-            ####검색 데이터 표출
-            cur.execute(sql)
-            row = 0
-            while True:
-                sqlrow = cur.fetchone()
-                if sqlrow == None:
-                    break
-                for col in range(0, 11):  # 0~9열 출력
-                    self.tableWidget.setItem(row, col, QTableWidgetItem(str(sqlrow[col])))
-                    if str(sqlrow[col]) == "None":  # 일자 null값 공백으로 표출
-                        self.tableWidget.setItem(row, col, QTableWidgetItem(""))
-                row += 1
-            self.tableWidget.setColumnHidden(11, True)  ####마지막 기록 순번 열 숨김
+        # if not any(self.getConditions()):  ########## 모든 칸에 입력 없을 경우 전체 헤드셋 표출
+        #     self.showTableListAll("select * from v_new")
+        #
+        # else:  ############# 입력값 하나라도 있을 경우 조건 검색
+        #
+        #
+        #     self.tableWidget.setRowCount(len(allrows))  # 테이블 행 갯수 지정
+        #     self.tableWidget.setColumnCount(11)  # 테이블 열 갯수 지정
+        #     self.tableWidget.setHorizontalHeaderLabels(
+        #         ['모델명', '일련번호', '상태', '일자', '지급내용', '인수자', '반납내용', '반납자', '확인자', '비고'])  # 헤드이름
+        #     ####검색 데이터 표출
+        #
+        #     row_cnt = 0
+        #
+        #     for row in allrows:
+        #         if row is None:
+        #             break
+        #         col_cnt = 0
+        #         for col in row:
+        #             if col == "None":  # 일자 null값 공백으로 표출
+        #                 self.tableWidget.setItem(row_cnt, col_cnt, QTableWidgetItem(""))
+        #             else:
+        #                 self.tableWidget.setItem(row_cnt, col_cnt, QTableWidgetItem(col))
+        #             col_cnt += 1
+        #         row_cnt += 1
+        #     self.tableWidget.setColumnHidden(10, True)  ####마지막 기록 순번 열 숨김
 
     def dialog_open(self):  # 수정 창 오픈
 
         print("수정클릭")
         try:
 
-            standard = [selected_data[0].strip(), selected_data[1].strip(), selected_data[2].strip(),
-                        selected_data[3].strip(), selected_data[4].strip(), selected_data[5].strip(),
-                        selected_data[6].strip(), selected_data[7].strip(), selected_data[8].strip(),
-                        selected_data[9].strip(), selected_data[10].strip()]
-
+            standard = [selected_data[x].strip() for x in range(11)]
+            # print(standard)
             ####초기 선택값 있는 경우 실행, selected_data는 수정창 테이블 한 번 표출 후 공백으로 초기화
             if any(standard):
 
@@ -553,33 +386,13 @@ class Ui_MainWindow(object):
                 self.dialog.exec()  ###수정창 지속
                 self.show()  ### 수정창 닫으면 메인윈도우 다시 표출
 
-                ########################    수정 창 닫은 후 메인창 다시 검색 ####################################
-                # self.tableWidget.setStyleSheet("border-style:solid;"
-                #                               "border-width: 2px;"
-                #                               "border-color: #9DCFFF;"
-                #                               "border-radius: 3p")
-                ##### 지급수량 세기
-                conn = pymysql.connect(host='192.168.97.205', user='headset', password='headset', port=3306,
-                                       # sql테이블 읽어오기
-                                       db='headset_db', charset='utf8')
-                cur = conn.cursor()  # 커서 연결하기
-                text = '지급'
-                cur.execute("SELECT COUNT(*) from v_new WHERE state IN ('{}');".format(text))  # sql문 입력
-                row = cur.fetchone()
-                self.textBrowser.setText(str(row[0]))  ##### 개수 표출
+                self.textBrowser.setText(
+                    self.db.execute_one("SELECT COUNT(*) from v_new WHERE state = '지급';")[0])  ##### 개수 표출
                 ##### 미지급수량 세기
-                cur.execute("SELECT COUNT(*) from v_new WHERE state IN ('반납','none');")  # sql문 입력
-                row = cur.fetchone()
-                self.textBrowser_2.setText(str(row[0]))  ##### 개수 표출
+                self.textBrowser_2.setText(
+                    self.db.execute_one("SELECT COUNT(*) from v_new WHERE state IN ('반납','none');")[0])  ##### 개수 표출
                 ##### 총수량 세기
-                cur.execute("select * from v_new")  # sql문 입력
-                rowcount = cur.fetchall()
-                self.textBrowser_3.setText(str(len(rowcount)))  ##### 개수 표출
-
-                conn = pymysql.connect(host='192.168.97.205', user='headset', password='headset', port=3306,
-                                       # sql테이블 읽어오기
-                                       db='headset_db', charset='utf8')
-                cur = conn.cursor()
+                self.textBrowser_3.setText(self.db.execute_all("select * from v_new"))  ##### 개수 표출
 
                 self.tableWidget.clear()
                 text_serial = self.textEdit.toPlainText()  # 사용자 일련번호 입력값 받아오기
@@ -591,34 +404,10 @@ class Ui_MainWindow(object):
                 text_list = [text_serial.strip(), text_model.strip(), text_recieve.strip(), text_state.strip(),
                              text_date.strip(), text_return.strip()]  # strip함수 : 공백->0 리턴
 
-                if not any(text_list):  ########## 모든 칸에 입력 없을 경우 전체 헤드셋 표출
-
-                    cur.execute("select * from v_new")  # sql문 실행
-                    allrows = cur.fetchall()
-                    self.tableWidget.setRowCount(len(allrows))  # 테이블 행 갯수 지정
-                    self.tableWidget.setColumnCount(11)  # 테이블 열 갯수 지정
-                    self.tableWidget.setHorizontalHeaderLabels(
-                        ['모델명', '일련번호', '상태', '일자', '지급내용', '인수자', '반납내용', '반납자', '확인자', '비고'])  # 위젯 헤드이름
-                    # 등재된 전체 헤드셋 정보 표출
-                    cur.execute("select * from v_new")
-                    row = 0
-                    while True:
-                        sqlrow = cur.fetchone()
-
-                        if sqlrow == None:
-                            break
-                        for col in range(0, 11):  # 0부터 9번째 열
-
-                            self.tableWidget.setItem(row, col, QTableWidgetItem(str(sqlrow[col])))
-                            if str(sqlrow[col]) == "None":  # 일자 null값 공백으로 표출
-                                self.tableWidget.setItem(row, col, QTableWidgetItem(""))
-
-                        row += 1
-                    self.tableWidget.setColumnHidden(10, True)  ####마지막 기록 순번 열 숨김
-
+                if not any(text_list):  # 모든 칸에 입력 없을 경우 전체 헤드셋 표출
+                    self.showTableListAll("select * from v_new")
 
                 else:  ############# 입력값 하나라도 있을 경우 조건 검색
-
                     self.tableWidget.clear()  # 테이블 위젯 초기화
                     ####입력이 공백일 경우 해당 조건 패스
                     if not text_serial.strip():
@@ -652,30 +441,13 @@ class Ui_MainWindow(object):
                         text_return = ("'{}'".format(text_return))
 
                     sql = "SELECT * FROM v_new WHERE serial_num = {} AND model_name = {} \
-                   AND recieve_person = {} AND state = {} \
-                   AND state_date = {} AND return_person = {} \
-                   ORDER BY state_date DESC".format(text_serial, text_model, text_recieve, text_state, text_date,
-                                                    text_return)
-                    cur.execute(sql)
-                    ####테이블 행열 지정
-                    allrows = cur.fetchall()
-                    self.tableWidget.setRowCount(len(allrows))  # 테이블 행 갯수 지정
-                    self.tableWidget.setColumnCount(11)  # 테이블 열 갯수 지정
-                    self.tableWidget.setHorizontalHeaderLabels(
-                        ['모델명', '일련번호', '상태', '일자', '지급내용', '인수자', '반납내용', '반납자', '확인자', '비고'])  # 헤드이름
-                    ####검색 데이터 표출
-                    cur.execute(sql)
-                    row = 0
-                    while True:
-                        sqlrow = cur.fetchone()
-                        if sqlrow == None:
-                            break
-                        for col in range(0, 11):  # 0~9열 출력
-                            self.tableWidget.setItem(row, col, QTableWidgetItem(str(sqlrow[col])))
-                            if str(sqlrow[col]) == "None":  # 일자 null값 공백으로 표출
-                                self.tableWidget.setItem(row, col, QTableWidgetItem(""))
-                        row += 1
-                    self.tableWidget.setColumnHidden(11, True)  ####마지막 기록 순번 열 숨김
+                                       AND recieve_person = {} AND state = {} \
+                                       AND state_date = {} AND return_person = {} \
+                                       ORDER BY state_date DESC".format(text_serial, text_model, text_recieve,
+                                                                        text_state, text_date,
+                                                                        text_return)
+                    ####입력이 공백일 경우 해당 조건 패스
+                    self.showTableListAll(sql)
 
             elif not any(standard):  #####selected_data 값 없는 경우
 
@@ -687,33 +459,24 @@ class Ui_MainWindow(object):
 
     def showlist(self):  #### '검색'버튼 클릭 showlist함수
         # self.tableWidget.setStyleSheet("border-style:solid;"
-        #                               "border-width: 2px;"         
+        #                               "border-width: 2px;"
         #                               "border-color: #9DCFFF;"
-        #                               "border-radius: 3p")       
+        #                               "border-radius: 3p")
         ##### 지급수량 세기
-        conn = pymysql.connect(host='192.168.97.205', user='headset', password='headset', port=3306,  # sql테이블 읽어오기
-                               db='headset_db', charset='utf8')
-        cur = conn.cursor()  # 커서 연결하기
-        text = '지급'
-        cur.execute("SELECT COUNT(*) from v_new WHERE state IN ('{}');".format(text))  # sql문 입력
-        row = cur.fetchone()
-        self.textBrowser.setText(str(row[0]))  ##### 개수 표출
-        ##### 미지급수량 세기 
-        cur.execute("SELECT COUNT(*) from v_new WHERE state IN ('반납','none');")  # sql문 입력
-        row = cur.fetchone()
-        self.textBrowser_2.setText(str(row[0]))  ##### 개수 표출
-        ##### 총수량 세기 
-        cur.execute("select * from v_new")  # sql문 입력
-        rowcount = cur.fetchall()
+        self.textBrowser.setText(
+            str(self.db.execute_one("SELECT COUNT(*) from v_new WHERE state IN ('지급');")[0]))  ##### 개수 표출
+        ##### 미지급수량 세기
+        self.textBrowser_2.setText(
+            str(self.db.execute_one("SELECT COUNT(*) from v_new WHERE state IN ('반납','none');")[0]))  ##### 개수 표출
+        ##### 총수량 세기
+        rowcount = self.db.execute_all("select * from v_new")
+        print(rowcount)
         self.textBrowser_3.setText(str(len(rowcount)))  ##### 개수 표출
 
         global selected_data
         print("검색버튼 누름")
 
         # 등재된 전체 헤드셋 정보 표출
-        conn = pymysql.connect(host='192.168.97.205', user='headset', password='headset', port=3306,  # sql테이블 읽어오기
-                               db='headset_db', charset='utf8')
-        cur = conn.cursor()
 
         text_serial = self.textEdit.toPlainText()  # 사용자 일련번호 입력값 받아오기
         text_model = self.combo_change()  # 모델명
@@ -726,37 +489,26 @@ class Ui_MainWindow(object):
 
         if not any(text_list):  ########## 모든 칸에 입력 없을 경우 전체 헤드셋 표출
             print("모든 조건 입력없음")
-            cur.execute("select * from v_new")  # sql문 실행
-            allrows = cur.fetchall()
+            allrows = self.db.execute_all("select * from v_new")
             self.tableWidget.setRowCount(len(allrows))  # 테이블 행 갯수 지정
             self.tableWidget.setColumnCount(11)  # 테이블 열 갯수 지정
             self.tableWidget.setHorizontalHeaderLabels(
                 ['모델명', '일련번호', '상태', '일자', '지급내용', '인수자', '반납내용', '반납자', '확인자', '비고'])  # 위젯 헤드이름
 
-            # self.tableWidget.horizontalHeader().setStretchLastSection(True)
-            # header = self.tableWidget.horizontalHeader()
-            # header.resizeSection(0,100)
-            # header.resizeSection(1,100)
-            # header.resizeSection(2,80)
-            # header.resizeSection(5,80)
-            # header.resizeSection(7,80)
-            # header.resizeSection(8,80)
-            # header.resizeSection(9,350)
-            # self.tableWidget.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)  # 내용에 맞게 열 너비 조정
-
-            cur.execute("select * from v_new")
-            row = 0
-            while True:
-                sqlrow = cur.fetchone()
-
-                if sqlrow == None:
+            row_cnt = 0
+            print(allrows)
+            for row in allrows:
+                if row is None:
                     break
-                for col in range(0, 11):  # 0부터 10번째 열
-                    self.tableWidget.setItem(row, col, QTableWidgetItem(str(sqlrow[col])))
-                    if str(sqlrow[col]) == "None":  # 일자 null값 공백으로 표출
-                        self.tableWidget.setItem(row, col, QTableWidgetItem(""))
+                col_cnt = 0
+                for col in row:
+                    if col == "None":  # 일자 null값 공백으로 표출
+                        self.tableWidget.setItem(row_cnt, col_cnt, QTableWidgetItem(""))
+                    else:
+                        self.tableWidget.setItem(row_cnt, col_cnt, QTableWidgetItem(col))
+                    col_cnt += 1
+                row_cnt += 1
 
-                row += 1
             self.tableWidget.setColumnHidden(10, True)  ####마지막 기록 순번 열 숨김
 
             self.tableWidget.resizeColumnToContents(4)  # 4번째 열 너비 조정
@@ -768,9 +520,8 @@ class Ui_MainWindow(object):
 
 
         else:  ############# 입력값 하나라도 있을 경우
-
             self.tableWidget.clear()  # 테이블 위젯 초기화
-            ####입력이 공백일 경우 해당 조건 패스 
+            ####입력이 공백일 경우 해당 조건 패스
             if not text_serial.strip():
                 text_serial = 'serial_num'
             else:
@@ -808,30 +559,8 @@ class Ui_MainWindow(object):
                                                     text_return)
 
             print(sql)
-
-            cur.execute(sql)
-
             ####테이블 행열 지정
-            allrows = cur.fetchall()
-            self.tableWidget.setRowCount(len(allrows))  # 테이블 행 갯수 지정
-            self.tableWidget.setColumnCount(11)  # 테이블 열 갯수 지정
-            self.tableWidget.setHorizontalHeaderLabels(
-                ['모델명', '일련번호', '상태', '일자', '지급내용', '인수자', '반납내용', '반납자', '확인자', '비고'])  # 헤드이름
-            ####검색 데이터 표출
-            cur.execute(sql)
-
-            row = 0
-            while True:
-                sqlrow = cur.fetchone()
-                if sqlrow == None:
-                    break
-                for col in range(0, 11):  # 0~10열 출력
-                    self.tableWidget.setItem(row, col, QTableWidgetItem(str(sqlrow[col])))
-                    if str(sqlrow[col]) == "None":  # 일자 null값 공백으로 표출
-                        self.tableWidget.setItem(row, col, QTableWidgetItem(""))
-                row += 1
-
-            self.tableWidget.setColumnHidden(10, True)  ####마지막 기록 순번 열 숨김
+            self.showTableListAll(sql)
 
             selected_data = ['', '', '', '', '', '', '', '', '', '', '']
             print("발생:", selected_data)
@@ -883,35 +612,18 @@ class Ui_MainWindow(object):
             if answer:
 
                 serial_data = selected_data[1]  ##선택 행 일련번호 값 가져오
-                conn = pymysql.connect(host='192.168.97.205', user='headset', password='headset', port=3306,
-                                       # sql테이블 읽어오기
-                                       db='headset_db', charset='utf8')
-                cur = conn.cursor()
-                sql = "UPDATE headset SET valid = 0 WHERE serial_num = '{}';".format(serial_data)
-                print(str(sql))
-
-                cur.execute(sql)
-                conn.commit()
+                self.db.excute(f"UPDATE headset SET valid = 0 WHERE serial_num = '{serial_data}';")
                 QMessageBox.about(self, '알림', '일련번호 : {} 헤드셋이 삭제되었습니다.'.format(serial_data))
 
                 ########################    삭제 후 메인창 다시 검색 ###################################
                 ##### 지급수량 세기
-                conn = pymysql.connect(host='192.168.97.205', user='headset', password='headset', port=3306,
-                                       # sql테이블 읽어오기
-                                       db='headset_db', charset='utf8')
-                cur = conn.cursor()  # 커서 연결하기
-                text = '지급'
-                cur.execute("SELECT COUNT(*) from v_new WHERE state IN ('{}');".format(text))  # sql문 입력
-                row = cur.fetchone()
-                self.textBrowser.setText(str(row[0]))  ##### 개수 표출
+                self.textBrowser.setText(
+                    str(self.db.execute_one("SELECT COUNT(*) from v_new WHERE state = '지급';")[0]))  ##### 개수 표출
                 ##### 미지급수량 세기
-                cur.execute("SELECT COUNT(*) from v_new WHERE state IN ('반납','none');")  # sql문 입력
-                row = cur.fetchone()
-                self.textBrowser_2.setText(str(row[0]))  ##### 개수 표출
+                self.textBrowser_2.setText(str(
+                    self.db.execute_one("SELECT COUNT(*) from v_new WHERE state IN ('반납','none');")[0]))  ##### 개수 표출
                 ##### 총수량 세기
-                cur.execute("select * from v_new")  # sql문 입력
-                rowcount = cur.fetchall()
-                self.textBrowser_3.setText(str(len(rowcount)))  ##### 개수 표출
+                self.textBrowser_3.setText(str(len(self.db.execute_all("select * from v_new"))))  ##### 개수 표출
 
                 self.tableWidget.clear()
                 text_serial = self.textEdit.toPlainText()  # 사용자 일련번호 입력값 받아오기
@@ -928,29 +640,25 @@ class Ui_MainWindow(object):
                 #                   "border-color: #9DCFFF;"
                 #                   "border-radius: 3p")
 
-                conn = pymysql.connect(host='192.168.97.205', user='headset', password='headset', port=3306,
-                                       # sql테이블 읽어오기
-                                       db='headset_db', charset='utf8')
-                cur = conn.cursor()
                 if not any(text_list):  ########## 모든 칸에 입력 없을 경우 전체 헤드셋 표출
-                    cur.execute("select * from v_new")  # sql문 실행
-                    allrows = cur.fetchall()
+                    allrows = self.db.execute_all("select * from v_new")
                     self.tableWidget.setRowCount(len(allrows))  # 테이블 행 갯수 지정
                     self.tableWidget.setColumnCount(11)  # 테이블 열 갯수 지정
                     self.tableWidget.setHorizontalHeaderLabels(
                         ['모델명', '일련번호', '상태', '일자', '지급내용', '인수자', '반납내용', '반납자', '확인자', '비고'])  # 위젯 헤드이름
                     # 등재된 전체 헤드셋 정보 표출
-                    cur.execute("select * from v_new")
-                    row = 0
-                    while True:
-                        sqlrow = cur.fetchone()
-                        if sqlrow == None:
+                    row_cnt = 0
+                    for row in allrows:
+                        if row is None:
                             break
-                        for col in range(0, 11):  # 0부터 10번째 열
-                            self.tableWidget.setItem(row, col, QTableWidgetItem(str(sqlrow[col])))
-                            if str(sqlrow[col]) == "None":  # 일자 null값 공백으로 표출
-                                self.tableWidget.setItem(row, col, QTableWidgetItem(""))
-                        row += 1
+                        col_cnt = 0
+                        for col in row:
+                            if col == "None":  # 일자 null값 공백으로 표출
+                                self.tableWidget.setItem(row_cnt, col_cnt, QTableWidgetItem(""))
+                            else:
+                                self.tableWidget.setItem(row_cnt, col_cnt, QTableWidgetItem(col))
+                            col_cnt += 1
+                        row_cnt += 1
                     self.tableWidget.setColumnHidden(10, True)  ####마지막 기록 순번 열 숨김
                 else:  ############# 입력값 하나라도 있을 경우 조건 검
                     self.tableWidget.clear()  # 테이블 위젯 초기화
@@ -990,25 +698,25 @@ class Ui_MainWindow(object):
                                AND state_date = {} AND return_person = {} \
                                ORDER BY state_date DESC".format(text_serial, text_model, text_recieve, text_state,
                                                                 text_date, text_return)
-                    cur.execute(sql)
                     ####테이블 행열 지정
-                    allrows = cur.fetchall()
+                    allrows = self.db.execute_all(sql)
                     self.tableWidget.setRowCount(len(allrows))  # 테이블 행 갯수 지정
                     self.tableWidget.setColumnCount(11)  # 테이블 열 갯수 지정
                     self.tableWidget.setHorizontalHeaderLabels(
                         ['모델명', '일련번호', '상태', '일자', '지급내용', '인수자', '반납내용', '반납자', '확인자', '비고'])  # 헤드이
                     ####검색 데이터 표출
-                    cur.execute(sql)
-                    row = 0
-                    while True:
-                        sqlrow = cur.fetchone()
-                        if sqlrow == None:
+                    row_cnt = 0
+                    for row in allrows:
+                        if row is None:
                             break
-                        for col in range(0, 11):  # 0~10열 출력
-                            self.tableWidget.setItem(row, col, QTableWidgetItem(str(sqlrow[col])))
-                            # if str(sqlrow[col]) == "None" :   #일자 null값 공백으로 표출
-                            #    self.tableWidget.setItem(row,col,QTableWidgetItem(""))
-                        row += 1
+                        col_cnt = 0
+                        for col in row:
+                            if col == "None":  # 일자 null값 공백으로 표출
+                                self.tableWidget.setItem(row_cnt, col_cnt, QTableWidgetItem(""))
+                            else:
+                                self.tableWidget.setItem(row_cnt, col_cnt, QTableWidgetItem(col))
+                            col_cnt += 1
+                        row_cnt += 1
                     self.tableWidget.setColumnHidden(10, True)  ####마지막 기록 순번 열 숨김
             elif not answer:
                 pass
@@ -1104,1018 +812,86 @@ class Ui_MainWindow(object):
         self.pushButton_4.setText(_translate("MainWindow", "신규등록"))
         self.pushButton_5.setText(_translate("MainWindow", "엑셀\n다운로드"))
 
+    def getConditions(self):
+        text_serial = self.textEdit.toPlainText()  # 사용자 일련번호 입력값 받아오기
+        text_model = self.combo_change()  # 모델명
+        text_recieve = self.textEdit_4.toPlainText()  # 인수자
+        text_state = self.combo2_change()  # 지급여부
+        text_date = self.textEdit_6.toPlainText()
+        text_return = self.textEdit_7.toPlainText()
+        text_list = [text_serial.strip(), text_model.strip(), text_recieve.strip(), text_state.strip(),
+                     text_date.strip(), text_return.strip()]  # strip함수 : 공백->0 리턴
+        return text_list
 
-############################ 수정창 ################################################
-class Ui_Update(QDialog):
-
-    def __init__(self):  # 클래스 생성 시  자동 실행되는 함수
-        super().__init__()
-        self.setupUi(self)
-        self.show()
-
-    def setupUi(self, UpdateUi):
-
-        UpdateUi.setWindowModality(Qt.ApplicationModal)  ### 메인창 조작 불가
-        self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)  ### QDialog 윈도창에 물음표 제거 
-
-        UpdateUi.setObjectName("UpdateUi")
-        UpdateUi.setFixedSize(1220, 440)
-        font = QtGui.QFont()
-        font.setFamily("맑은 고딕")
-        UpdateUi.setFont(font)
-        self.horizontalLayoutWidget_3 = QtWidgets.QWidget(UpdateUi)
-        self.horizontalLayoutWidget_3.setGeometry(QtCore.QRect(260, 280, 221, 30))
-        self.horizontalLayoutWidget_3.setObjectName("horizontalLayoutWidget_3")
-        self.horizontalLayout_3 = QtWidgets.QHBoxLayout(self.horizontalLayoutWidget_3)
-        self.horizontalLayout_3.setContentsMargins(0, 0, 0, 0)
-        self.horizontalLayout_3.setObjectName("horizontalLayout_3")
-        self.textBrowser_2 = QtWidgets.QTextBrowser(self.horizontalLayoutWidget_3)
-        self.textBrowser_2.setObjectName("textBrowser_2")
-        self.horizontalLayout_3.addWidget(self.textBrowser_2)
-        self.textEdit_3 = QtWidgets.QTextEdit(self.horizontalLayoutWidget_3)
-        self.textEdit_3.setObjectName("textEdit_3")
-        self.horizontalLayout_3.addWidget(self.textEdit_3)
-
-        self.textBrowser_3 = QtWidgets.QTextBrowser(UpdateUi)
-        self.textBrowser_3.setGeometry(QtCore.QRect(520, 280, 97, 30))
-        self.textBrowser_3.setObjectName("textBrowser_3")
-        self.textEdit_4 = QtWidgets.QTextEdit(UpdateUi)
-        self.textEdit_4.setGeometry(QtCore.QRect(630, 280, 200, 30))
-        self.textEdit_4.setObjectName("textEdit_4")
-
-        self.horizontalLayoutWidget_5 = QtWidgets.QWidget(UpdateUi)
-        self.horizontalLayoutWidget_5.setGeometry(QtCore.QRect(260, 360, 221, 30))
-        self.horizontalLayoutWidget_5.setObjectName("horizontalLayoutWidget_5")
-        self.horizontalLayout_5 = QtWidgets.QHBoxLayout(self.horizontalLayoutWidget_5)
-        self.horizontalLayout_5.setContentsMargins(0, 0, 0, 0)
-        self.horizontalLayout_5.setObjectName("horizontalLayout_5")
-        self.textBrowser_4 = QtWidgets.QTextBrowser(self.horizontalLayoutWidget_5)
-        self.textBrowser_4.setObjectName("textBrowser_4")
-        self.horizontalLayout_5.addWidget(self.textBrowser_4)
-        self.textEdit_5 = QtWidgets.QTextEdit(self.horizontalLayoutWidget_5)
-        self.textEdit_5.setObjectName("textEdit_5")
-        self.horizontalLayout_5.addWidget(self.textEdit_5)
-        self.horizontalLayoutWidget_6 = QtWidgets.QWidget(UpdateUi)
-        self.horizontalLayoutWidget_6.setGeometry(QtCore.QRect(580, 360, 170, 30))
-        self.horizontalLayoutWidget_6.setObjectName("horizontalLayoutWidget_6")
-        self.horizontalLayout_6 = QtWidgets.QHBoxLayout(self.horizontalLayoutWidget_6)
-        self.horizontalLayout_6.setContentsMargins(0, 0, 0, 0)
-        self.horizontalLayout_6.setObjectName("horizontalLayout_6")
-        self.label_4 = QtWidgets.QLabel(self.horizontalLayoutWidget_6)
-        font = QtGui.QFont()
-        font.setFamily("맑은 고딕")
-        self.label_4.setFont(font)
-        self.label_4.setObjectName("label_4")
-        self.horizontalLayout_6.addWidget(self.label_4)
-        self.textEdit_6 = QtWidgets.QTextEdit(self.horizontalLayoutWidget_6)
-        self.textEdit_6.setObjectName("textEdit_6")
-        self.horizontalLayout_6.addWidget(self.textEdit_6)
-        self.horizontalLayoutWidget_7 = QtWidgets.QWidget(UpdateUi)
-        self.horizontalLayoutWidget_7.setGeometry(QtCore.QRect(860, 280, 280, 30))
-        self.horizontalLayoutWidget_7.setObjectName("horizontalLayoutWidget_7")
-        self.horizontalLayout_7 = QtWidgets.QHBoxLayout(self.horizontalLayoutWidget_7)
-        self.horizontalLayout_7.setContentsMargins(0, 0, 0, 0)
-        self.horizontalLayout_7.setObjectName("horizontalLayout_7")
-        self.label_5 = QtWidgets.QLabel(self.horizontalLayoutWidget_7)
-        font = QtGui.QFont()
-        font.setFamily("맑은 고딕")
-        self.label_5.setFont(font)
-        self.label_5.setObjectName("label_5")
-        self.horizontalLayout_7.addWidget(self.label_5)
-        self.textEdit_7 = QtWidgets.QTextEdit(self.horizontalLayoutWidget_7)
-        self.textEdit_7.setObjectName("textEdit_7")
-        self.horizontalLayout_7.addWidget(self.textEdit_7)
-        self.verticalLayoutWidget = QtWidgets.QWidget(UpdateUi)
-        self.verticalLayoutWidget.setGeometry(QtCore.QRect(60, 19, 1100, 220))
-        self.verticalLayoutWidget.setObjectName("verticalLayoutWidget")
-        self.verticalLayout = QtWidgets.QVBoxLayout(self.verticalLayoutWidget)
-        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
-        self.verticalLayout.setObjectName("verticalLayout")
-        self.label_2 = QtWidgets.QLabel(self.verticalLayoutWidget)
-        font = QtGui.QFont()
-        font.setFamily("맑은 고딕")
-        font.setPointSize(13)
-        font.setBold(True)
-        font.setWeight(75)
-        self.label_2.setFont(font)
-        self.label_2.setTextFormat(QtCore.Qt.RichText)
-        self.label_2.setObjectName("label_2")
-        self.verticalLayout.addWidget(self.label_2)
-        self.tableWidget = QtWidgets.QTableWidget(self.verticalLayoutWidget)
-        self.tableWidget.setObjectName("tableWidget")
-        self.tableWidget.setColumnCount(0)
-        self.tableWidget.setRowCount(0)
-        font = QtGui.QFont()
-        font.setFamily("맑은 고딕")
-        self.tableWidget.setFont(font)
-        self.verticalLayout.addWidget(self.tableWidget)
-        self.label_6 = QtWidgets.QLabel(UpdateUi)
-        self.label_6.setGeometry(QtCore.QRect(60, 270, 121, 54))
-        font = QtGui.QFont()
-        font.setFamily("맑은 고딕")
-        self.label_6.setFont(font)
-        self.label_6.setObjectName("label_6")
-        self.comboBox = QtWidgets.QComboBox(UpdateUi)
-        self.comboBox.setGeometry(QtCore.QRect(130, 280, 91, 30))
-        self.comboBox.setObjectName("comboBox")
-        self.label_7 = QtWidgets.QLabel(UpdateUi)
-        self.label_7.setGeometry(QtCore.QRect(60, 350, 121, 54))
-        font = QtGui.QFont()
-        font.setFamily("맑은 고딕")
-        self.label_7.setFont(font)
-        self.label_7.setObjectName("label_7")
-        self.comboBox_2 = QtWidgets.QComboBox(UpdateUi)
-        self.comboBox_2.setGeometry(QtCore.QRect(130, 360, 91, 30))
-        self.comboBox_2.setObjectName("comboBox_2")
-        self.pushButton_2 = QtWidgets.QPushButton(UpdateUi)
-        self.pushButton_2.setGeometry(QtCore.QRect(826, 360, 101, 41))
-        font = QtGui.QFont()
-        font.setFamily("맑은 고딕")
-        font.setBold(True)
-        font.setWeight(75)
-        self.pushButton_2.setFont(font)
-        self.pushButton_2.setObjectName("pushButton_2")
-        self.pushButton_3 = QtWidgets.QPushButton(UpdateUi)
-        self.pushButton_3.setGeometry(QtCore.QRect(940, 360, 101, 41))
-        self.pushButton_4 = QtWidgets.QPushButton(UpdateUi)
-        self.pushButton_4.setGeometry(QtCore.QRect(1054, 360, 101, 41))
-        font = QtGui.QFont()
-        font.setFamily("맑은 고딕")
-        font.setBold(True)
-        font.setWeight(75)
-        self.pushButton_3.setFont(font)
-        self.pushButton_4.setFont(font)
-        self.pushButton_3.setObjectName("pushButton_3")
-
-        self.retranslateUi(UpdateUi)
-        QtCore.QMetaObject.connectSlotsByName(UpdateUi)
-
-        self.tableWidget.verticalHeader().sectionClicked.connect(self.header_click)  # 헤더 클릭
-        self.pushButton_2.clicked.connect(UpdateUi.update)  #####수정 버튼 클릭 함수연결
-        self.pushButton_3.clicked.connect(UpdateUi.insert)  #####이력등록 버튼 클릭 함수연결
-        self.pushButton_4.clicked.connect(UpdateUi.remove)  #####이력삭제 버튼 클릭 함수연결
-
-        self.pushButton_2.setStyleSheet("QPushButton"
-                                        "{"
-                                        "border-style:solid;"
-                                        "border-width: 2px;"
-                                        "border-color: #9DCFFF;"
-                                        "border-radius: 3px;"
-                                        "}""QPushButton::hover"
-                                        "{"
-                                        "border-style:solid;"
-                                        "border-width: 1px;"
-                                        "color:white;"
-                                        "background-color: #9DCFFF;"
-                                        "border-radius: 3px;"
-                                        "}"
-                                        )
-
-        self.pushButton_3.setStyleSheet("QPushButton"
-                                        "{"
-                                        "border-style:solid;"
-                                        "border-width: 2px;"
-                                        "border-color: #9DCFFF;"
-                                        "border-radius: 3px;"
-                                        "}""QPushButton::hover"
-                                        "{"
-                                        "border-style:solid;"
-                                        "border-width: 1px;"
-                                        "color:white;"
-                                        "background-color: #9DCFFF;"
-                                        "border-radius: 3px;"
-                                        "}"
-                                        )
-
-        self.pushButton_4.setStyleSheet("QPushButton"
-                                        "{"
-                                        "border-style:solid;"
-                                        "border-width: 2px;"
-                                        "border-color: #9DCFFF;"
-                                        "border-radius: 3px;"
-                                        "}""QPushButton::hover"
-                                        "{"
-                                        "border-style:solid;"
-                                        "border-width: 1px;"
-                                        "color:white;"
-                                        "background-color: #9DCFFF;"
-                                        "border-radius: 3px;"
-                                        "}"
-                                        )
-
-        # 선택값 초기화시켜야하는 경우
-        self.tableWidget.horizontalHeader().sectionClicked.connect(self.headerclicked_event)
-        self.tableWidget.cellClicked.connect(self.cellclicked_event)
-
-        self.tableWidget.setCornerButtonEnabled(False)  # 왼쪽 상단 코너버튼 클릭 끄기
-
-        self.tableWidget.setEditTriggers(QAbstractItemView.NoEditTriggers)  ###테이블 안에서 수정 금지
-
-        #######메인창에서 선택한 데이터의 일련번호 기준 표출
-        global selected_data
-
-        print(selected_data)
-        conn = pymysql.connect(host='192.168.97.205', user='headset', password='headset', port=3306,  # sql테이블 읽어오기
-                               db='headset_db', charset='utf8')
-        cur = conn.cursor()
-
-        sql = "SELECT * FROM v_now WHERE serial_num = '{}' ORDER BY state_date DESC".format(selected_data[1])
-
-        ####테이블 행열 지정
-
-        print(sql)
-
-        cur.execute(sql)
-
-        allrows = cur.fetchall()
+    def showTableListAll(self, query):
+        allrows = self.db.execute_all(query)
         self.tableWidget.setRowCount(len(allrows))  # 테이블 행 갯수 지정
         self.tableWidget.setColumnCount(11)  # 테이블 열 갯수 지정
         self.tableWidget.setHorizontalHeaderLabels(
-            ['모델명', '일련번호', '상태', '일자', '지급내용', '인수자', '반납내용', '반납자', '확인자', '비고'])  # 헤드이름
-
-        self.tableWidget.setStyleSheet("border-style:solid;"
-                                       "border-width: 1px;"
-                                       "border-color: #9DCFFF;"
-                                       "border-radius: 3px;")
-
-        ####테이블 데이터 표출
-        cur.execute(sql)
-        row = 0
-        while True:
-            sqlrow = cur.fetchone()
-            if sqlrow == None:
+            ['모델명', '일련번호', '상태', '일자', '지급내용', '인수자', '반납내용', '반납자', '확인자', '비고'])  # 위젯 헤드이름
+        # 등재된 전체 헤드셋 정보 표출
+        # cur.execute("select * from v_new")
+        row_cnt = 0
+        for row in allrows:
+            if row is None:
                 break
-            for col in range(0, 11):  # 0~10열 출력
-                self.tableWidget.setItem(row, col, QTableWidgetItem(str(sqlrow[col])))
-                if str(sqlrow[col]) == "None":  # 일자 null값 공백으로 표출
-                    self.tableWidget.setItem(row, col, QTableWidgetItem(""))
-            row += 1
-        self.tableWidget.setColumnHidden(10, True)  ####마지막 기록 순번 열 숨김
-
-        ###콤보박스 리스트 추가
-        conn = pymysql.connect(host='192.168.97.205', user='headset', password='headset', port=3306,  # sql테이블 읽어오기
-                               db='headset_db', charset='utf8')
-        cur = conn.cursor()
-
-        sql = "SELECT DISTINCT model_name, IF (model_name = '', '', model_name) AS result \
-               FROM headset WHERE NOT model_name = '{}' ORDER BY model_name DESC ;".format(selected_data[0])
-        cur.execute(sql)
-
-        self.comboBox.addItem(selected_data[0])  ###메인창에서 선택한 데이터를 콤보박스 첫행에 추가
-
-        ###콤보박스 리스트에 나머지 데이터 추가
-        while True:
-            sqlrow = cur.fetchone()
-            if sqlrow == None:
-                break
-            self.comboBox.addItem(str(sqlrow[1]))
-
-        self.comboBox.currentIndexChanged.connect(self.combo_change)
-
-        ####지급여부 콤보박스2 리스트 설정
-        sql = "SELECT DISTINCT state, IF (state = '', '', state) AS result \
-               FROM v_now WHERE NOT state IN ('{}','') ORDER BY state DESC; ".format(selected_data[2])
-        cur.execute(sql)
-
-        self.comboBox_2.addItem(selected_data[2])  ###메인창에서 선택한 데이터부터 표출
-
-        ###콤보박스2 리스트에 나머지 데이터 추가
-        while True:
-            sqlrow = cur.fetchone()
-            if sqlrow == None:
-                break
-            self.comboBox_2.addItem(str(sqlrow[1]))
-
-        a = self.comboBox_2.currentText()  ######지급여부에 따라 나머지 텍스트 세팅
-
-        if a == "지급":
-            self.textBrowser_2.setText("{}일자".format(a))
-            self.textBrowser_3.setText("{}내용".format(a))
-            self.textBrowser_4.setText("인수자")
-        elif a == "반납":
-            self.textBrowser_2.setText("{}일자".format(a))
-            self.textBrowser_3.setText("{}내용".format(a))
-            self.textBrowser_4.setText("반납자")
-        else:
-            self.textBrowser_2.setText("일자")
-            self.textBrowser_3.setText("내용")
-            self.textBrowser_4.setText("인수자")
-
-        self.comboBox_2.currentIndexChanged.connect(self.combo2_change)  ###콤보박스 선택 시 함수
-
-        global send_data, sub_data
-        send_data = selected_data[1]  ####일련번호 이력등록 버튼에 전달
-        selected_data = ['', '', '', '', '', '', '', '', '', '', '']  ###사용한 값 초기화, 메인창에서 선택한 행 리셋
-        sub_data = ['', '', '', '', '', '', '', '', '', '', '']  ### 수정창에서 선택한 행 리셋
-        print("메인창 선택값 초기화를 완료,{}".format(sub_data))
-
-        # self.tableWidget.resizeColumnToContents(0)  #0번째 열 너비 조정
-        # self.tableWidget.resizeColumnToContents(4)  #4번째 열 너비 조정
-        # self.tableWidget.resizeColumnToContents(6)  #6번째 열 너비 조정
-        # self.tableWidget.resizeColumnToContents(9)  #9번째 열 너비 조정
-        self.tableWidget.horizontalHeader().setStretchLastSection(True)
-        self.tableWidget.verticalHeader().setFixedWidth(40)  ##열 헤더 너비 고정
-
-    def cellclicked_event(self, row, col):
-        global sub_data
-        sub_data = ['', '', '', '', '', '', '', '', '', '', '']
-        print("발생:", sub_data)
-
-    def headerclicked_event(self, logicalIndex):
-        global sub_data
-        sub_data = ['', '', '', '', '', '', '', '', '', '', '']
-        print("발생:", sub_data)
-
-    def header_click(self, logicalIndex):  ###사용자 행 헤더 클릭시
-        global sub_row, sub_data
-        sub_row = logicalIndex + 1
-        print(str(sub_row) + '번째 행')
-
-        data1 = self.tableWidget.item(logicalIndex, 0).text()
-        data2 = self.tableWidget.item(logicalIndex, 1).text()
-        data3 = self.tableWidget.item(logicalIndex, 2).text()
-        data4 = self.tableWidget.item(logicalIndex, 3).text()
-        data5 = self.tableWidget.item(logicalIndex, 4).text()
-        data6 = self.tableWidget.item(logicalIndex, 5).text()
-        data7 = self.tableWidget.item(logicalIndex, 6).text()
-        data8 = self.tableWidget.item(logicalIndex, 7).text()
-        data9 = self.tableWidget.item(logicalIndex, 8).text()
-        data10 = self.tableWidget.item(logicalIndex, 9).text()
-        data11 = self.tableWidget.item(logicalIndex, 10).text()  # history 인덱스 값
-
-        sub_data = [data1, data2, data3, data4, data5, data6, data7, data8, data9, data10, data11]
-        print("선택된 값 ->", sub_data)
-
-        ####텍스트에딧에 값 띄우기
-        self.textEdit_3.setText(sub_data[3])  ### 기록 일자
-        two = sub_data[2]
-        if two == "지급":
-            self.textEdit_4.setText(sub_data[4])  ###지급내용 표출
-            self.textEdit_5.setText(sub_data[5])  ###인수자 표출
-        elif two == "반납":
-            self.textEdit_4.setText(sub_data[6])  ###반납내용 표출
-            self.textEdit_5.setText(sub_data[7])  ###반납자 표출
-        else:  # nore or 공백
-            self.textEdit_4.setText(sub_data[4])  ###지급내용 표출
-            self.textEdit_5.setText(sub_data[5])  ###인수자 표출
-        self.textEdit_6.setText(sub_data[8])  ###확인자
-        self.textEdit_7.setText(sub_data[9])  ###비고
-
-        ####모델명 콤보박스 리스트 설정
-        conn = pymysql.connect(host='192.168.97.205', user='headset', password='headset', port=3306,  # sql테이블 읽어오기
-                               db='headset_db', charset='utf8')
-        cur = conn.cursor()
-
-        sql = "SELECT DISTINCT model_name, IF (model_name = '', '', model_name) AS result \
-               FROM headset WHERE NOT model_name = '{}' ORDER BY model_name DESC ;".format(sub_data[0])
-        cur.execute(sql)
-        self.comboBox.clear()
-        self.comboBox.addItem(sub_data[0])  ###수정창에서 선택한 데이터를 콤보박스 첫행에 추가
-
-        ###콤보박스 리스트에 나머지 데이터 추가
-        while True:
-            sqlrow = cur.fetchone()
-            if sqlrow == None:
-                break
-            self.comboBox.addItem(str(sqlrow[1]))
-
-        self.comboBox.currentIndexChanged.connect(self.combo_change)  ###콤보박스 선택 시 함수
-
-        ####지급여부 콤보박스2 리스트 설정             
-        sql = "SELECT DISTINCT state, IF (state = '', '', state) AS result \
-               FROM v_now WHERE NOT state IN ('{}','') ORDER BY state DESC; ".format(sub_data[2])
-        cur.execute(sql)
-
-        self.comboBox_2.clear()
-        self.comboBox_2.addItem(sub_data[2])  ###첫행에 선택한 데이터부터 첫번째 표출
-
-        ###콤보박스2 리스트에 나머지 데이터 추가
-        while True:
-            sqlrow = cur.fetchone()
-            if sqlrow == None:
-                break
-            self.comboBox_2.addItem(str(sqlrow[1]))
-
-        a = self.comboBox_2.currentText()  ######지급여부에 따라 나머지 텍스트 세팅
-
-        if a == "지급":
-            self.textBrowser_2.setText("{}일자".format(a))
-            self.textBrowser_3.setText("{}내용".format(a))
-            self.textBrowser_4.setText("인수자")
-        elif a == "반납":
-            self.textBrowser_2.setText("{}일자".format(a))
-            self.textBrowser_3.setText("{}내용".format(a))
-            self.textBrowser_4.setText("반납자")
-        else:
-            self.textBrowser_2.setText("일자")
-            self.textBrowser_3.setText("내용")
-            self.textBrowser_4.setText("인수자")
-
-        self.comboBox_2.currentIndexChanged.connect(self.combo2_change)  ###콤보박스 선택 시 함수
-
-        return sub_row, sub_data
-
-    def combo_change(self):  ###모델명
-
-        combo = self.comboBox.currentText()
-        return combo
-
-    def combo2_change(self):  ###### 지급or반납 선택할 때마다 브라우저 텍스트 세팅
-        a = self.comboBox_2.currentText()
-
-        if a == "지급":
-            self.textBrowser_2.setText("{}일자".format(a))
-            self.textBrowser_3.setText("{}내용".format(a))
-            self.textBrowser_4.setText("인수자")
-        elif a == "반납":
-            self.textBrowser_2.setText("{}일자".format(a))
-            self.textBrowser_3.setText("{}내용".format(a))
-            self.textBrowser_4.setText("반납자")
-        else:
-            self.textBrowser_2.setText("일자")
-            self.textBrowser_3.setText("내용")
-            self.textBrowser_4.setText("인수자")
-
-        return a
-
-        ######수정 버튼 클릭
-
-    def update(self):
-        print("수정할게요")
-        global sub_data
-        standard = sub_data[1].strip()  ##일련번호 값
-        if standard:  ###공백이 아닐경우
-
-            # 사용자 입력값 받기 위한 변수, history 없뎃
-            global value, h_value
-            value = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
-            h_value = [1, 2]
-
-            value[0] = self.combo2_change()  ###상태 콤보박스 데이터 state
-            value[1] = self.textEdit_3.toPlainText()  ###state_date
-
-            if value[0] == '지급':
-                value[2] = self.textEdit_4.toPlainText()  ###give_memo
-                value[3] = ''  ###return_memo
-                value[4] = self.textEdit_5.toPlainText()  ###recieve_person
-                value[5] = ''  ###return_person
-            elif value[0] == '반납':
-                value[2] = ''  ###give_memo
-                value[3] = self.textEdit_4.toPlainText()  ###return_memo
-                value[4] = ''  ###recieve_person
-                value[5] = self.textEdit_5.toPlainText()  ###return_person
-            else:  ###none or 공백
-                value[0] == ''
-                value[2] = self.textEdit_4.toPlainText()  ###give_memo
-                value[3] = ''  ###return_memo
-                value[4] = self.textEdit_5.toPlainText()  ###recieve_person
-                value[5] = ''  ###return_person
-
-            value[6] = self.textEdit_6.toPlainText()  ###check_person
-            value[7] = self.textEdit_7.toPlainText()  ###bigo
-            value[8] = sub_data[10]  ###이력 기록 고유 인덱스 값
-
-            h_value[0] = self.combo_change()  ###모델명
-            h_value[1] = sub_data[1]  ###일련번호
-
-            print("{0[0]},{0[1]},{0[2]},{0[3]},{0[4]},{0[5]},{0[6]},{0[7]},{0[8]}".format(value))
-
-            try:
-                print(datetime.datetime.strptime(value[1], "%Y-%m-%d"))
-
-                answer = self.Question_event_update()  ### yes or no
-
-                if answer:
-
-                    conn = pymysql.connect(host='192.168.97.205', user='headset', password='headset', port=3306,
-                                           # sql테이블 읽어오기
-                                           db='headset_db', charset='utf8')
-                    cur = conn.cursor()
-                    if sub_data[10].strip():  ## 히스토리 인덱스 공백,null아닐 경우
-                        sql = "UPDATE history SET state = '{0[0]}', state_date = '{0[1]}', give_memo = '{0[2]}', return_memo='{0[3]}', recieve_person = '{0[4]}', return_person = '{0[5]}', check_person = '{0[6]}', bigo = '{0[7]}' WHERE num = {0[8]};".format(
-                            value)
-                    if not sub_data[10].strip():  ## 히스토리 데이터x, 인덱스 공백,null인 경우
-                        print('인덱스값 없음----->"{}"'.format(value[8]))
-                        sql = "INSERT INTO history VALUES (NULL,'{1[1]}','{0[0]}','{0[1]}','{0[2]}','{0[3]}','{0[4]}','{0[5]}','{0[6]}','{0[7]}');".format(
-                            value, h_value)
-                    try:
-                        cur.execute(sql)
-
-                        print(sql)
-                        sql = "UPDATE headset SET model_name = '{0[0]}' WHERE serial_num = '{0[1]}';".format(h_value)
-                        cur.execute(sql)
-                        print(sql)
-                        ##########수정 후 다시 표출
-                        sql = "SELECT * FROM v_now WHERE serial_num = '{}' ORDER BY state_date DESC".format(sub_data[1])
-                        ####테이블 행열 지정
-                        cur.execute(sql)
-                        allrows = cur.fetchall()
-                        self.tableWidget.setRowCount(len(allrows))  # 테이블 행 갯수 지정
-                        self.tableWidget.setColumnCount(11)  # 테이블 열 갯수 지정
-                        self.tableWidget.setHorizontalHeaderLabels(
-                            ['모델명', '일련번호', '상태', '일자', '지급내용', '인수자', '반납내용', '반납자', '확인자', '비고'])  # 헤드이름
-                        self.tableWidget.setStyleSheet("border-style:solid;"
-                                                       "border-width: 1px;"
-                                                       "border-color: #9DCFFF;"
-                                                       "border-radius: 3px;")
-
-                        ####테이블 데이터 표출
-                        cur.execute(sql)
-                        row = 0
-                        while True:
-                            sqlrow = cur.fetchone()
-                            if sqlrow == None:
-                                break
-                            for col in range(0, 11):  # 0~10열 출력
-                                self.tableWidget.setItem(row, col, QTableWidgetItem(str(sqlrow[col])))
-                                if str(sqlrow[col]) == "None":  # 일자 null값 공백으로 표출
-                                    self.tableWidget.setItem(row, col, QTableWidgetItem(""))
-                            row += 1
-                        self.tableWidget.setColumnHidden(10, True)  ####마지막 기록 순번 열 숨김
-
-                        conn.commit()  #######DB 적용하려면 이거 필수
-                        QMessageBox.about(self, '알림', '헤드셋 이력 정보가 수정되었습니다.')
-                    except pymysql.err.DataError:
-                        QMessageBox.warning(self, '경고', '허용 글자 수를 초과했습니다')
-
-                if not answer: pass
-
-            except ValueError:
-                QMessageBox.warning(self, '경고', '날짜 형식은 YYYY-MM-DD로 입력해주세요.')
-
-            except pymysql.err.OperationalError:
-                QMessageBox.warning(self, '경고', '날짜 형식은 YYYY-MM-DD로 입력해주세요.')
-
-        elif not standard:  ####선택값 공백인 경우
-            QMessageBox.warning(self, '경고', '수정할 데이터를 선택하세요.')
-
-        sub_data = ['', '', '', '', '', '', '', '', '', '', '']  ### 수정창에서 선택한 행 리셋
-        print("수정창에서 선택한 값 초기화를 완료하였다,{}".format(sub_data))
-
-        self.tableWidget.resizeColumnToContents(4)  # 4번째 열 너비 조정
-        self.tableWidget.resizeColumnToContents(6)  # 6번째 열 너비 조정
-        self.tableWidget.resizeColumnToContents(9)  # 9번째 열 너비 조정
-
-    ######이력 등록 버튼 클릭       
-    def insert(self):
-
-        print("값은", send_data)
-        ####사용자 입력값 받아오기
-        global value, h_value
-        value = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
-        h_value = [1, 2]
-
-        value[0] = self.combo2_change()  ###상태 콤보박스 현재 데이터
-
-        value[1] = self.textEdit_3.toPlainText()  ###state_date
-
-        if value[0] == '지급':
-            value[2] = self.textEdit_4.toPlainText()  ###give_memo
-            value[3] = ''  ###return_memo
-            value[4] = self.textEdit_5.toPlainText()  ###recieve_person
-            value[5] = ''  ###return_person
-
-        elif value[0] == '반납':
-            value[2] = ''  ###give_memo
-            value[3] = self.textEdit_4.toPlainText()  ###return_memo
-            value[4] = ''  ###recieve_person
-            value[5] = self.textEdit_5.toPlainText()  ###return_person
-
-        else:  ###none or 공백
-            value[0] == ''
-            value[2] = self.textEdit_4.toPlainText()  ###give_memo
-            value[3] = ''  ###return_memo
-            value[4] = self.textEdit_5.toPlainText()  ###recieve_person
-            value[5] = ''  ###return_person
-
-        value[6] = self.textEdit_6.toPlainText()  ###check_person
-        value[7] = self.textEdit_7.toPlainText()  ###bigo
-
-        h_value[0] = self.combo_change()  ###모델명 콤보박스 현재 데이터
-        h_value[1] = send_data  ###일련번호
-
-        print("{0[0]},{0[1]},{0[2]},{0[3]},{0[4]},{0[5]},{0[6]},{0[7]}".format(value))
-
-        try:
-            print(datetime.datetime.strptime(value[1], "%Y-%m-%d"))
-
-            answer = self.Question_event_insert()
-            if answer:
-                conn = pymysql.connect(host='192.168.97.205', user='headset', password='headset', port=3306,
-                                       # sql테이블 읽어오기
-                                       db='headset_db', charset='utf8')
-                cur = conn.cursor()
-
-                sql = "INSERT INTO history VALUES (NULL,'{1[1]}','{0[0]}','{0[1]}','{0[2]}','{0[3]}','{0[4]}','{0[5]}','{0[6]}','{0[7]}');".format(
-                    value, h_value)
-                cur.execute(sql)
-                print(sql)
-
-                ################등록 후 다시 표출
-
-                sql = "SELECT * FROM v_now WHERE serial_num = '{}' ORDER BY state_date DESC".format(send_data)
-
-                ####테이블 행열 지정
-                cur.execute(sql)
-                allrows = cur.fetchall()
-                self.tableWidget.setRowCount(len(allrows))  # 테이블 행 갯수 지정
-                self.tableWidget.setColumnCount(11)  # 테이블 열 갯수 지정
-                self.tableWidget.setHorizontalHeaderLabels(
-                    ['모델명', '일련번호', '상태', '일자', '지급내용', '인수자', '반납내용', '반납자', '확인자', '비고'])  # 헤드이름
-                self.tableWidget.setStyleSheet("border-style:solid;"
-                                               "border-width: 1px;"
-                                               "border-color: #9DCFFF;"
-                                               "border-radius: 3px;")
-
-                ###테이블 데이터 표출
-                cur.execute(sql)
-                row = 0
-                while True:
-                    sqlrow = cur.fetchone()
-                    if sqlrow == None:
-                        break
-                    for col in range(0, 11):  # 0~10열 출력
-                        self.tableWidget.setItem(row, col, QTableWidgetItem(str(sqlrow[col])))
-                        if str(sqlrow[col]) == "None":  # 일자 null값 공백으로 표출
-                            self.tableWidget.setItem(row, col, QTableWidgetItem(""))
-                    row += 1
-
-                self.tableWidget.setColumnHidden(10, True)  ####마지막 기록 순번 열 숨김
-
-                conn.commit()  #######DB 적용하려면 이거 필수
-                QMessageBox.about(self, '알림', '일련번호 : {} 헤드셋의 이력이 추가되었습니다.'.format(send_data))
-                if not answer: pass
-        except ValueError:
-            QMessageBox.warning(self, '경고', '날짜 형식은 YYYY-MM-DD로 입력해주세요.')
-        except pymysql.err.OperationalError:
-            QMessageBox.warning(self, '경고', '날짜 형식은 YYYY-MM-DD로 입력해주세요.')
-
-        self.tableWidget.resizeColumnToContents(4)  # 4번째 열 너비 조정
-        self.tableWidget.resizeColumnToContents(6)  # 6번째 열 너비 조정
-        self.tableWidget.resizeColumnToContents(9)  # 9번째 열 너비 조정
-
-    #######이력 삭제 버튼 클릭
-    def remove(self):
-        global sub_data
-
-        standard = sub_data[1].strip()
-        if standard:  ###공백이 아닐경우
-            if sub_data[10].strip():  ###히스토리 인덱스 공백이 아닐경우
-                print("값은", send_data)
-                conn = pymysql.connect(host='192.168.97.205', user='headset', password='headset', port=3306,
-                                       # sql테이블 읽어오기
-                                       db='headset_db', charset='utf8')
-                cur = conn.cursor()
-                sql = "DELETE FROM history WHERE num = '{}';".format(sub_data[10])  ###header_click함수 실행 시 생성
-                answer = self.Question_event_remove()
-                if answer:
-                    cur.execute(sql)
-                    print(sql)
-                    ####삭제 후 다시 표출
-                    sql = "SELECT * FROM v_now WHERE serial_num = '{}' ORDER BY state_date DESC".format(
-                        send_data)  ###메인창에서 선택한 행의 일련번호
-                    ####테이블 행열 지정
-                    cur.execute(sql)
-                    allrows = cur.fetchall()
-                    self.tableWidget.setRowCount(len(allrows))  # 테이블 행 갯수 지정
-                    self.tableWidget.setColumnCount(11)  # 테이블 열 갯수 지정
-                    self.tableWidget.setHorizontalHeaderLabels(
-                        ['모델명', '일련번호', '상태', '일자', '지급내용', '인수자', '반납내용', '반납자', '확인자', '비고'])  # 헤드이
-                    self.tableWidget.setStyleSheet("border-style:solid;"
-                                                   "border-width: 1px;"
-                                                   "border-color: #9DCFFF;"
-                                                   "border-radius: 3px;")
-
-                    ###테이블 데이터 표출
-                    cur.execute(sql)
-                    row = 0
-                    while True:
-                        sqlrow = cur.fetchone()
-                        if sqlrow == None:
-                            break
-                        for col in range(0, 11):  # 0~10열 출력
-                            self.tableWidget.setItem(row, col, QTableWidgetItem(str(sqlrow[col])))
-                            if str(sqlrow[col]) == "None":  # 일자 null값 공백으로 표출
-                                self.tableWidget.setItem(row, col, QTableWidgetItem(""))
-                        row += 1
-                    self.tableWidget.setColumnHidden(10, True)  ####마지막 기록 순번 열 숨김
-                    conn.commit()  #######DB 적용하려면 이거 필수
-                    QMessageBox.about(self, '알림', '일련번호 : {} 헤드셋의 이력이 삭제되었습니다.'.format(send_data))
-
-                if not answer: pass
-            elif not sub_data[10].strip():
-                QMessageBox.warning(self, '경고', '삭제할 이력이 없습니다.')
-        elif not standard:  ####선택값 공백인 경우
-            QMessageBox.warning(self, '경고', '삭제할 이력을 선택하세요.')
-
-        sub_data = ['', '', '', '', '', '', '', '', '', '', '']  ### 수정창에서 선택한 행 리셋
-        print("수정창에서 선택한 값 초기화를 완료하였다,{}".format(sub_data))
-        self.tableWidget.resizeColumnToContents(4)  # 4번째 열 너비 조정
-        self.tableWidget.resizeColumnToContents(6)  # 6번째 열 너비 조정
-        self.tableWidget.resizeColumnToContents(9)  # 9번째 열 너비 조정
-
-    def Question_event_insert(self):
-
-        if value[0] == '지급':
-            ment = "'모델명: {1[0]}, 지급여부: {0[0]}, \n지급일자: {0[1]}, \n지급내용: {0[2]}, \n인수자: {0[4]}, 확인자: {0[6]}, \n비고: {0[7]}' \n로 데이터를 추가하시겠습니까?".format(
-                value, h_value)
-        if value[0] == '반납':
-            ment = "'모델명: {1[0]}, 지급여부: {0[0]}, \n반납일자: {0[1]}, \n반납내용: {0[3]}, \n반납자: {0[5]}, 확인자: {0[6]}, \n비고: {0[7]}' \n로 데이터를 추가하시겠습니까?".format(
-                value, h_value)
-        else:
-            ment = "'모델명: {1[0]}, 지급여부: {0[0]}, \n지급일자: {0[1]}, \n지급내용: {0[2]}, \n인수자: {0[4]}, 확인자: {0[6]}, \n비고: {0[7]}' \n로 데이터를 추가하시겠습니까?".format(
-                value, h_value)
-
-        buttonReply = QMessageBox.question(self, '알림', ment, QMessageBox.Yes | QMessageBox.No)
-        if buttonReply == QMessageBox.Yes:
-            return True
-        elif buttonReply == QMessageBox.No:
-            return False
-
-    def Question_event_update(self):
-
-        if value[0] == '지급':
-            ment = "{2}번 행을 '모델명: {1[0]}, 지급여부: {0[0]}, \n지급일자: {0[1]}, \n지급내용: {0[2]}, \n인수자: {0[4]}, 확인자: {0[6]}, \n비고: {0[7]}' \n로 수정하시겠습니까?".format(
-                value, h_value, sub_row)
-        if value[0] == '반납':
-            ment = "{2}번 행을 '모델명: {1[0]}, 지급여부: {0[0]}, \n반납일자: {0[1]}, \n반납내용: {0[3]}, \n반납자: {0[5]}, 확인자: {0[6]}, \n비고: {0[7]}' \n로 수정하시겠습니까?".format(
-                value, h_value, sub_row)
-        else:
-            ment = "{2}번 행을 '모델명: {1[0]}, 지급여부: {0[0]}, \n지급일자: {0[1]}, \n지급내용: {0[2]}, \n인수자: {0[5]}, 확인자: {0[6]}, \n비고: {0[7]}' \n로 수정하시겠습니까?".format(
-                value, h_value, sub_row)
-
-        buttonReply = QMessageBox.question(self, '알림', ment, QMessageBox.Yes | QMessageBox.No)
-        if buttonReply == QMessageBox.Yes:
-            return True
-        elif buttonReply == QMessageBox.No:
-            return False
-
-    def Question_event_remove(self):
-
-        ment = "일련번호 : {} 헤드셋의 {}번 행 이력을 삭제하시겠습니까?".format(send_data, sub_row)
-        buttonReply = QMessageBox.question(self, '알림', ment, QMessageBox.Yes | QMessageBox.No)
-        if buttonReply == QMessageBox.Yes:
-            return True
-        elif buttonReply == QMessageBox.No:
-            return False
-
-    def retranslateUi(self, UpdateUi):
-        _translate = QtCore.QCoreApplication.translate
-        UpdateUi.setWindowTitle(_translate("UpdateUi", "수정"))
-        self.label_4.setText(_translate("UpdateUi", "확인자   "))
-        self.label_5.setText(_translate("UpdateUi", "비고"))
-        self.label_2.setText(_translate("UpdateUi", "수정"))
-        self.label_6.setText(_translate("UpdateUi", "모델명"))
-        self.label_7.setText(_translate("UpdateUi", "지급여부"))
-        self.pushButton_2.setText(_translate("UpdateUi", "수정"))
-        self.pushButton_3.setText(_translate("UpdateUi", "이력 등록"))
-        self.pushButton_4.setText(_translate("UpdateUi", "이력 삭제"))
-
-
-############################ 등록창 ################################################
-class Ui_Resigster(QDialog):
-
-    def __init__(self):  # 클래스 생성 시  자동 실행되는 함수
-        super().__init__()
-        self.setupUi(self)
-        self.show()
-
-    def setupUi(self, Dialog):
-
-        self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)  ### QDialog 윈도창에 물음표 제거     
-        Dialog.setObjectName("Dialog")
-        Dialog.setFixedSize(464, 440)
-        self.label_1 = QtWidgets.QLabel(Dialog)
-        self.label_1.setGeometry(QtCore.QRect(140, 10, 181, 41))
-        font = QtGui.QFont()
-        font.setFamily("맑은 고딕")
-        font.setPointSize(12)
-        font.setBold(True)
-        font.setWeight(75)
-        self.label_1.setFont(font)
-        self.label_1.setTextFormat(QtCore.Qt.RichText)
-        self.label_1.setAlignment(QtCore.Qt.AlignCenter)
-        self.label_1.setObjectName("label_1")
-        self.horizontalLayoutWidget_4 = QtWidgets.QWidget(Dialog)
-        self.horizontalLayoutWidget_4.setGeometry(QtCore.QRect(120, 140, 210, 41))
-        self.horizontalLayoutWidget_4.setObjectName("horizontalLayoutWidget_4")
-        self.horizontalLayout_4 = QtWidgets.QHBoxLayout(self.horizontalLayoutWidget_4)
-        self.horizontalLayout_4.setContentsMargins(0, 0, 0, 0)
-        self.horizontalLayout_4.setObjectName("horizontalLayout_4")
-        self.label_4 = QtWidgets.QLabel(self.horizontalLayoutWidget_4)
-        font = QtGui.QFont()
-        font.setFamily("맑은 고딕")
-        self.label_4.setFont(font)
-        self.label_4.setObjectName("label_4")
-        self.horizontalLayout_4.addWidget(self.label_4)
-        self.textEdit_4 = QtWidgets.QTextEdit(self.horizontalLayoutWidget_4)
-        self.textEdit_4.setObjectName("textEdit_4")
-        font = QtGui.QFont()
-        font.setFamily("맑은 고딕")
-        font.setBold(False)
-        font.setPointSize(10)
-        self.textEdit_4.setFont(font)
-        self.horizontalLayout_4.addWidget(self.textEdit_4)
-        self.groupBox = QtWidgets.QGroupBox(Dialog)
-        self.groupBox.setGeometry(QtCore.QRect(50, 290, 361, 102))
-        font = QtGui.QFont()
-        font.setFamily("맑은 고딕")
-        font.setBold(True)
-        font.setWeight(75)
-        self.groupBox.setFont(font)
-        self.groupBox.setObjectName("groupBox")
-        self.horizontalLayoutWidget = QtWidgets.QWidget(self.groupBox)
-        self.horizontalLayoutWidget.setGeometry(QtCore.QRect(10, 40, 152, 40))
-        self.horizontalLayoutWidget.setObjectName("horizontalLayoutWidget")
-        self.horizontalLayout = QtWidgets.QHBoxLayout(self.horizontalLayoutWidget)
-        self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
-        self.horizontalLayout.setObjectName("horizontalLayout")
-        self.label = QtWidgets.QLabel(self.horizontalLayoutWidget)
-        self.label.setObjectName("label")
-        font = QtGui.QFont()
-        font.setFamily("맑은 고딕")
-        font.setBold(False)
-        self.label.setFont(font)
-        self.horizontalLayout.addWidget(self.label)
-        self.textBrowser = QtWidgets.QTextBrowser(self.horizontalLayoutWidget)
-        self.textBrowser.setObjectName("textBrowser")
-        self.horizontalLayout.addWidget(self.textBrowser)
-        self.horizontalLayoutWidget_2 = QtWidgets.QWidget(self.groupBox)
-        self.horizontalLayoutWidget_2.setGeometry(QtCore.QRect(180, 40, 142, 40))
-        self.horizontalLayoutWidget_2.setObjectName("horizontalLayoutWidget_2")
-        self.horizontalLayout_2 = QtWidgets.QHBoxLayout(self.horizontalLayoutWidget_2)
-        self.horizontalLayout_2.setContentsMargins(0, 0, 0, 0)
-        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
-        self.label_3 = QtWidgets.QLabel(self.horizontalLayoutWidget_2)
-        self.label_3.setObjectName("label_3")
-        font = QtGui.QFont()
-        font.setFamily("맑은 고딕")
-        font.setBold(False)
-        self.label_3.setFont(font)
-        self.horizontalLayout_2.addWidget(self.label_3)
-        self.textBrowser_2 = QtWidgets.QTextBrowser(self.horizontalLayoutWidget_2)
-        self.textBrowser_2.setObjectName("textBrowser_2")
-        self.horizontalLayout_2.addWidget(self.textBrowser_2)
-        self.label_2 = QtWidgets.QLabel(Dialog)
-        self.label_2.setGeometry(QtCore.QRect(120, 70, 60, 54))
-        font = QtGui.QFont()
-        font.setFamily("맑은 고딕")
-        self.label_2.setFont(font)
-        self.label_2.setObjectName("label_2")
-        self.comboBox = QtWidgets.QComboBox(Dialog)
-        self.comboBox.setGeometry(QtCore.QRect(220, 80, 110, 41))
-        self.comboBox.setObjectName("comboBox")
-        self.pushButton_4 = QtWidgets.QPushButton(Dialog)
-        self.pushButton_4.setGeometry(QtCore.QRect(226, 210, 101, 41))
-        font = QtGui.QFont()
-        font.setFamily("맑은 고딕")
-        font.setBold(True)
-        font.setWeight(75)
-        self.pushButton_4.setFont(font)
-        self.pushButton_4.setObjectName("pushButton_4")
-
-        self.pushButton_4.setStyleSheet("QPushButton"
-                                        "{"
-                                        "border-style:solid;"
-                                        "border-width: 2px;"
-                                        "border-color: #9DCFFF;"
-                                        "border-radius: 3px;"
-                                        "}""QPushButton::hover"
-                                        "{"
-                                        "border-style:solid;"
-                                        "border-width: 1px;"
-                                        "color:white;"
-                                        "background-color: #9DCFFF;"
-                                        "border-radius: 3px;"
-                                        "}"
-                                        )
-
-        self.retranslateUi(Dialog)
-        QtCore.QMetaObject.connectSlotsByName(Dialog)
-
-        self.pushButton_4.clicked.connect(Dialog.new)
-
-        self.comboBox.addItem("HW251")
-        self.comboBox.addItem("H171")
-        self.comboBox.currentIndexChanged.connect(self.combo_change)
-
-        conn = pymysql.connect(host='192.168.97.205', user='headset', password='headset', port=3306,  # sql테이블 읽어오기
-                               db='headset_db', charset='utf8')
-
-        cur = conn.cursor()  # 커서 연결하기
-        cur.execute("SELECT * from stock WHERE model_name = 'HW251';")
-        row = cur.fetchone()
-
-        self.textBrowser.setText(str(row[1]))
-
-        cur.execute("SELECT * from stock WHERE model_name = 'H171';")
-        row = cur.fetchone()
-
-        self.textBrowser_2.setText(str(row[1]))
-
-    def new(self):
-        print("등록 클릭")
-
-        ment = self.Question_event()  ### yes or no
-
-        if ment:
-            try:
-                ####사용자 입력값 받아오기
-                global user, h_user
-                user = [1, 2, 3, 4, 5, 6, 7, 8, ]
-                h_user = [1, 2]
-
-                user[0] = ''  ###상태
-                user[1] = ''  ###state_date
-                user[2] = ''  ###give_memo
-                user[3] = ''  ###return_memo
-                user[4] = ''  ###recieve_person
-                user[5] = ''  ###return_person
-                user[6] = ''  ###check_person
-                user[7] = ''  ###bigo
-
-                h_user[0] = self.textEdit_4.toPlainText()  # 일련번호
-                h_user[1] = self.combo_change()  ###모델명 콤보박스 현재 데이터
-
-                conn = pymysql.connect(host='192.168.97.205', user='headset', password='headset', port=3306,
-                                       # sql테이블 읽어오기
-                                       db='headset_db', charset='utf8')
-                cur = conn.cursor()
-                ###헤드셋에 추가
-                sql = "INSERT INTO headset VALUES ('{0[0]}','{0[1]}','1');".format(h_user)
-                cur.execute(sql)
-                print(sql)
-
-                ###빈 이력 생성
-                # sql = "INSERT INTO history VALUES (NULL,'{1[0]}','{0[0]}',NULL,'{0[2]}','{0[3]}','{0[4]}','{0[5]}','{0[6]}','{0[7]}');".format(user,h_user)
-                # cur.execute(sql)
-                # print(sql)
-
-                cur.execute("UPDATE stock SET amount = amount-1 WHERE model_name = '{}';".format(h_user[1]))
-
-                conn.commit()  #######DB 적용하려면 이거 필수
-
-                ######재고 수량 다시 세기
-                conn = pymysql.connect(host='192.168.97.205', user='headset', password='headset', port=3306,
-                                       # sql테이블 읽어오기
-                                       db='headset_db', charset='utf8')
-
-                cur = conn.cursor()  # 커서 연결하기
-                cur.execute("SELECT * from stock WHERE model_name = 'HW251';")
-                row = cur.fetchone()
-                self.textBrowser.setText(str(row[1]))
-
-                cur.execute("SELECT * from stock WHERE model_name = 'H171';")
-                row = cur.fetchone()
-                self.textBrowser_2.setText(str(row[1]))
-
-                QMessageBox.about(self, '알림', '등록 완료')
-
-            except pymysql.err.IntegrityError:
-                QMessageBox.warning(self, '경고', '중복되는 일련번호가 있습니다.')
-
-
-        elif not ment:
-            pass
-
-    def Question_event(self):
-
-        ment_1 = self.combo_change()
-        ment_2 = self.textEdit_4.toPlainText()
-        ment = '모델명 : {} , 일련번호 : {} 을 등록하시겠습니까?'.format(ment_1, ment_2)
-        buttonReply = QMessageBox.question(self, '알림', ment, QMessageBox.Yes | QMessageBox.No)
-
-        if buttonReply == QMessageBox.Yes:
-            print('Yes clicked.')
-            return True
-        elif buttonReply == QMessageBox.No:
-            print('No clicked.')
-            return False
-
-    def combo_change(self):  ###모델명
-
-        combo = self.comboBox.currentText()
-        return combo
-
-    def retranslateUi(self, Dialog):
-        _translate = QtCore.QCoreApplication.translate
-        Dialog.setWindowTitle(_translate("Dialog", "신규 등록"))
-        self.label_1.setText(_translate("Dialog", "신규 등록"))
-        self.label_4.setText(_translate("Dialog", "일련번호   "))
-        self.groupBox.setTitle(_translate("Dialog", "현재 재고수량"))
-        self.label.setText(_translate("Dialog", "HW251"))
-        self.label_3.setText(_translate("Dialog", "H171"))
-        self.label_2.setText(_translate("Dialog", "모델명  "))
-        self.pushButton_4.setText(_translate("Dialog", "등록"))
-
+            col_cnt = 0
+            for col in row:
+                if col == "None":  # 일자 null값 공백으로 표출
+                    self.tableWidget.setItem(row_cnt, col_cnt, QTableWidgetItem(""))
+                else:
+                    self.tableWidget.setItem(row_cnt, col_cnt, QTableWidgetItem(col))
+                col_cnt += 1
+            row_cnt += 1
+
+        self.tableWidget.setColumnHidden(10, True)
+
+    # def conditinalSearch(self, text_list):
+    #     if not text_serial.strip():
+    #         text_serial = 'serial_num'
+    #     else:
+    #         text_serial = ("'{}'".format(text_serial))
+    #     if not text_model.strip():
+    #         text_model = 'model_name'
+    #     else:
+    #         text_model = ("'{}'".format(text_model))
+    #     if not text_recieve.strip():
+    #         text_recieve = 'recieve_person'
+    #     else:
+    #         text_recieve = ("'{}'".format(text_recieve))
+    #     if not text_state.strip():
+    #         text_state = 'state'
+    #     else:
+    #         text_state = ("'{}'".format(text_state))
+    #     if not text_date.strip():
+    #         text_date = 'state_date'
+    #     else:
+    #         try:
+    #             print(datetime.datetime.strptime(text_date, "%Y-%m-%d"))
+    #             text_date = ("'{}'".format(text_date))
+    #         except ValueError:
+    #             QMessageBox.warning(self, '경고', '날짜 형식은 YYYY-MM-DD로 입력해주세요.')
+    #             text_date = 'state_date'
+    #     if not text_return.strip():
+    #         text_return = 'return_person'
+    #     else:
+    #         text_return = ("'{}'".format(text_return))
+    #
+    #     sql = "SELECT * FROM v_new WHERE serial_num = {} AND model_name = {} \
+    #     AND recieve_person = {} AND state = {} \
+    #     AND state_date = {} AND return_person = {} \
+    #     ORDER BY state_date DESC".format(text_serial, text_model, text_recieve, text_state, text_date,
+    #                                      text_return)
+    #     allrows = self.db.execute_all(sql)
 
 ##### qtdesigner 자동생성x
 class kinwriter(QMainWindow, Ui_MainWindow, QTableWidgetItem):
 
     def __init__(self):
         super().__init__()
-
         self.setupUi(self)
+        self.showlist()
+        self.show()
         # self.timer = QTimer(self)
         # self.timer.setSingleShot(False)
         # self.timer.setInterval(5000) # in milliseconds, so 5000 = 5 seconds
@@ -2124,10 +900,10 @@ class kinwriter(QMainWindow, Ui_MainWindow, QTableWidgetItem):
 
         # print(self.hasMouseTracking())
 
-        self.show()
 
+app = QApplication([sys.argv])
+# ex = Ui_MainWindow()
 
-app = QApplication([])
 sn = kinwriter()  # 인스턴스 생성
 QApplication.processEvents()
 sys.exit(app.exec_())
